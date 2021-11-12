@@ -260,7 +260,7 @@ class SoftMaxModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        dx = self.last_out * (dout - (dout * self.last_out))
+        dx = np.multiply(self.last_out, dout - (dout * self.last_out))
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -307,7 +307,7 @@ class CrossEntropyModule(object):
         #######################
         T = np.zeros(x.shape, dtype=np.float64)
         T[np.arange(y.shape[0]), y] = 1.0
-        out = -np.sum(T * np.log(x))
+        out = -np.sum(np.multiply(T, np.log(x)))
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -333,7 +333,7 @@ class CrossEntropyModule(object):
         num_samples = y.shape[0]
         T = np.zeros(x.shape, dtype=np.float64)
         T[np.arange(num_samples), y] = 1.
-        dx = -1./num_samples * np.divide(T, x)
+        dx = -np.divide(T, x)
         #######################
         # END OF YOUR CODE    #
         #######################
