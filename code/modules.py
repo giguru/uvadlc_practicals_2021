@@ -46,6 +46,28 @@ class LinearModule(object):
         # PUT YOUR CODE HERE  #
         #######################
 
+        # Kaiming HE initialization is a normal distribution with mu=0, but sigma depends on whether ReLu was applied
+        # on the layer before.
+        # For the first layer (l = 1), we should have n(l) * Var[w] = 1, because there is no ReLU applied on the
+        # input signal. This can be rewritten to Var[w] = 1/n(l).
+        if input_layer:
+            kaimingHeStandardDevication = np.sqrt(1/in_features)
+        else:
+            kaimingHeStandardDevication = np.sqrt(2/in_features)
+
+        self.in_features = in_features
+        self.out_features = out_features
+
+        self.params = {
+            'weight': np.random.normal(loc=0, scale=kaimingHeStandardDevication, size=(in_features, out_features)),
+            'bias': np.zeros(shape=out_features, dtype=np.float32)
+        }
+        self.grads = {
+            'weight': np.zeros(shape=(in_features, out_features), dtype=np.float32),
+            'bias': np.zeros(out_features, dtype=np.float32)
+        }
+        self.last_out = None
+        self.last_input = None
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -68,11 +90,12 @@ class LinearModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        out = np.matmul(x, self.params['weight']) + self.params['bias']
+        self.last_out = out.copy()
+        self.last_input = x.copy()
         #######################
         # END OF YOUR CODE    #
         #######################
-
         return out
 
     def backward(self, dout):
@@ -92,7 +115,9 @@ class LinearModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        self.grads['weight'] = np.matmul(self.last_input.T, dout)
+        self.grads['bias'] = np.sum(dout, axis=1, keepdims=True)
+        dx = np.matmul(dout, self.params['weight'].T)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -109,7 +134,9 @@ class LinearModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        self.last_out = None
+        self.last_input = None
+
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -138,7 +165,8 @@ class ReLUModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        out = np.maximum(0, x)
+        self.last_out = out.copy()
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -160,7 +188,7 @@ class ReLUModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        dx = np.where(self.last_out > 0, dout, 0)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -177,7 +205,7 @@ class ReLUModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        self.last_out = None
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -206,7 +234,11 @@ class SoftMaxModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        diff = x - x.max(axis=1, keepdims=True)
+        y = np.exp(diff)
+        denominator = y.sum(axis=1, keepdims=True)
+        out = y / denominator
+        self.last_out = out.copy()
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -217,7 +249,7 @@ class SoftMaxModule(object):
         """
         Backward pass.
         Args:
-          dout: gradients of the previous modul
+          dout: gradients of the previous module
         Returns:
           dx: gradients with respect to the input of the module
 
@@ -228,7 +260,7 @@ class SoftMaxModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        dx = self.last_out * (dout - (dout * self.last_out))
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -246,7 +278,7 @@ class SoftMaxModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        self.last_out = None
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -273,7 +305,9 @@ class CrossEntropyModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        T = np.zeros(x.shape, dtype=np.float64)
+        T[np.arange(y.shape[0]), y] = 1.0
+        out = -np.sum(T * np.log(x))
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -296,7 +330,10 @@ class CrossEntropyModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        num_samples = y.shape[0]
+        T = np.zeros(x.shape, dtype=np.float64)
+        T[np.arange(num_samples), y] = 1.
+        dx = -1./num_samples * np.divide(T, x)
         #######################
         # END OF YOUR CODE    #
         #######################
