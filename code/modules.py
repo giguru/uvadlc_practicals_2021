@@ -236,8 +236,7 @@ class SoftMaxModule(object):
         #######################
         diff = x - x.max(axis=1, keepdims=True)
         y = np.exp(diff)
-        denominator = y.sum(axis=1, keepdims=True)
-        out = y / denominator
+        out = y / y.sum(axis=1, keepdims=True)
         self.last_out = out.copy()
         #######################
         # END OF YOUR CODE    #
@@ -260,7 +259,13 @@ class SoftMaxModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        dx = np.multiply(self.last_out, dout - (dout * self.last_out))
+        I = np.eye(dout.shape[1], dout.shape[1])
+        outer_product = np.einsum('ij,ik->ijk', self.last_out, self.last_out)
+        d_softmax = np.einsum('ij,jk->ijk', self.last_out, I) - outer_product
+        dx = np.einsum('ijk,ik->ij', d_softmax, dout)
+
+        # TODO ask Teaching assistant how to do it without einsum
+        # dx = self.last_out * (dout - (dout * self.last_out))
         #######################
         # END OF YOUR CODE    #
         #######################
