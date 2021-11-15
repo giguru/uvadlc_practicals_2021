@@ -53,7 +53,9 @@ def accuracy(predictions, targets):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-
+    # Use 'sum()' to count the number of True values in the resulting array
+    accuracy = (np.argmax(predictions, axis=1) == targets).sum()
+    accuracy /= len(targets)
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -81,7 +83,12 @@ def evaluate_model(model, data_loader):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-
+    preds_val, labels_val = None, np.array([])
+    for batch_inputs, batch_labels in tqdm(data_loader):
+        out = model.forward(batch_inputs)
+        preds_val = np.vstack((preds_val, out)) if preds_val is not None else out
+        labels_val = np.concatenate((labels_val, batch_labels))
+    avg_accuracy = accuracy(preds_val, labels_val)
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -135,14 +142,53 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
     #######################
 
     # TODO: Initialize model and loss module
-    model = ...
-    loss_module = ...
+    model = MLP(n_inputs=32*32*3,
+                n_hidden=hidden_dims,
+                n_classes=len(cifar10['train'].dataset.classes)
+                )
+    loss_module = CrossEntropyModule()
+
     # TODO: Training loop including validation
-    val_accuracies = ...
-    # TODO: Test best model
-    test_accuracy = ...
+    val_accuracies = []
+
     # TODO: Add any information you might want to save for plotting
-    logging_info = ...
+    logging_dict = {
+        'loss_per_batch': []
+    }
+    best_model = None
+    for epoch_number in range(0, epochs):
+        for batch_inputs, batch_labels in tqdm(cifar10_loader['train']):
+            out = model.forward(batch_inputs)
+
+            # Compute loss
+            loss = loss_module.forward(out, batch_labels)
+            logging_dict['loss_per_batch'].append(loss)
+
+            # Do backpropagation
+            dout = loss_module.backward(out, batch_labels)
+            model.backward(dout)
+
+            # Update parameters
+            for layer in model.layers:
+                grads = getattr(layer, 'grads', None)
+                params = getattr(layer, 'params', None)
+
+                if params is not None and grads is not None:
+                    for k in params.keys():
+                        layer.params[k] = layer.params[k] + lr * layer.grads[k]
+            # Clean up
+            model.clear_cache()
+
+        # Do validation
+        acc = evaluate_model(model, cifar10_loader['validation'])
+        if best_model is None or acc > np.max(val_accuracies):
+            best_model = deepcopy(model)
+        val_accuracies.append(acc)
+
+    # TODO: Test best model
+    print(val_accuracies)
+    test_accuracy = evaluate_model(best_model, cifar10_loader['test'])
+    print(test_accuracy)
     #######################
     # END OF YOUR CODE    #
     #######################

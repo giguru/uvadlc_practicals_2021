@@ -52,7 +52,17 @@ class MLP(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        self.layers = []
+        for i in range(0, len(n_hidden)):
+            is_first = i == 0
+            in_features = n_inputs if is_first else n_hidden[i-1]
+            self.layers.append(LinearModule(in_features=in_features, out_features=n_hidden[i], input_layer=is_first))
+            self.layers.append(ReLUModule())
+
+        # Add a classification layer
+        self.layers.append(LinearModule(in_features=n_hidden[-1], out_features=n_classes, input_layer=False))
+        self.layers.append(SoftMaxModule())
+
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -74,7 +84,10 @@ class MLP(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        n_samples = x.shape[0]
+        out = x.reshape(n_samples, -1) # flatten the input,
+        for layer in self.layers:
+            out = layer.forward(out)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -95,7 +108,9 @@ class MLP(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        for i in range(len(self.layers)-1, -1, -1):
+            dout = self.layers[i].backward(dout)
+
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -112,7 +127,10 @@ class MLP(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        for layer in self.layers:
+            clear_cache_func = getattr(layer, 'clear_cache', None)
+            if callable(clear_cache_func):
+                clear_cache_func()
         #######################
         # END OF YOUR CODE    #
         #######################

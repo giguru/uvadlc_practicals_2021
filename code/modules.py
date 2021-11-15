@@ -57,14 +57,13 @@ class LinearModule(object):
 
         self.in_features = in_features
         self.out_features = out_features
-
         self.params = {
             'weight': np.random.normal(loc=0, scale=kaimingHeStandardDevication, size=(in_features, out_features)),
-            'bias': np.zeros(shape=out_features, dtype=np.float32)
+            'bias': np.zeros(shape=out_features, dtype=np.float64)
         }
         self.grads = {
-            'weight': np.zeros(shape=(in_features, out_features), dtype=np.float32),
-            'bias': np.zeros(out_features, dtype=np.float32)
+            'weight': np.zeros(shape=(self.in_features, self.out_features), dtype=np.float64),
+            'bias': np.zeros(self.out_features, dtype=np.float64)
         }
         self.last_out = None
         self.last_input = None
@@ -115,8 +114,8 @@ class LinearModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        self.grads['weight'] = np.matmul(self.last_input.T, dout)
-        self.grads['bias'] = np.sum(dout, axis=1, keepdims=True)
+        self.grads['weight'] += np.matmul(self.last_input.T, dout)
+        self.grads['bias'] += np.sum(dout, axis=0, keepdims=False)
         dx = np.matmul(dout, self.params['weight'].T)
         #######################
         # END OF YOUR CODE    #
@@ -136,6 +135,10 @@ class LinearModule(object):
         #######################
         self.last_out = None
         self.last_input = None
+
+        # Reset the gradients as well.
+        for k in self.grads.keys():
+            self.grads[k] = np.zeros(shape=self.grads[k].shape, dtype=self.grads[k].dtype)
 
         #######################
         # END OF YOUR CODE    #
@@ -310,6 +313,7 @@ class CrossEntropyModule(object):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        n_samples = x.shape[0]
         T = np.zeros(x.shape, dtype=np.float64)
         T[np.arange(y.shape[0]), y] = 1.0
         out = -np.sum(np.multiply(T, np.log(x)))
@@ -338,7 +342,8 @@ class CrossEntropyModule(object):
         num_samples = y.shape[0]
         T = np.zeros(x.shape, dtype=np.float64)
         T[np.arange(num_samples), y] = 1.
-        dx = -np.divide(T, x)
+        # dx = -np.divide(T, x + 0.0001)
+        dx = (x - T) / -num_samples
         #######################
         # END OF YOUR CODE    #
         #######################
