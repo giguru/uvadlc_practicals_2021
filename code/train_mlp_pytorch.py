@@ -230,15 +230,17 @@ if __name__ == '__main__':
 
     model, val_accuracies, test_accuracy, logging_dict = train(**kwargs)
     # Feel free to add any additional functions, such as plotting of the loss curve here
+    x_point = np.arange(1, kwargs['epochs'] + 1)
     plt.xlabel("Epoch no.")
     plt.ylabel("Loss")
-    plt.title("Torch model loss")
-    plt.plot(np.array(logging_dict['loss_per_batch']).mean(axis=1))
+    plt.title("Torch model average loss")
+    plt.plot(x_point, np.array(logging_dict['loss_per_batch']).mean(axis=1))
     plt.show()
 
     plt.xlabel("Epoch no.")
     plt.title("Torch model accuracy")
     plt.ylabel("Validation accuracy")
-    plt.plot(val_accuracies)
+    plt.plot(x_point, val_accuracies)
     plt.show()
+    print(f"Test accuracy is: {test_accuracy}")
     
