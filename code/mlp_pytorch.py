@@ -59,7 +59,20 @@ class MLP(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        super().__init__()
+        layers = []
+        dims = [n_inputs] + n_hidden
+        for i in range(1, len(dims)):
+            lin_layer = nn.Linear(in_features=dims[i-1], out_features=dims[i])
+            nn.init.kaiming_normal_(lin_layer.weight, nonlinearity="relu")
+            layers.append(lin_layer)
+            if use_batch_norm:
+                # TODO check which batch norm to use
+                layers.append(nn.BatchNorm1d(num_features=dims[i]))
+            layers.append(nn.ReLU())
+
+        layers.append(nn.Linear(in_features=dims[-1], out_features=n_classes))
+        self.layers = nn.Sequential(*layers)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -81,7 +94,9 @@ class MLP(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-
+        n_samples = x.shape[0]
+        xview = x.view(n_samples, -1)  # flatten the input,
+        out = self.layers(xview)
         #######################
         # END OF YOUR CODE    #
         #######################

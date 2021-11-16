@@ -29,7 +29,7 @@ from copy import deepcopy
 from mlp_numpy import MLP
 from modules import CrossEntropyModule
 import cifar10_utils
-
+import matplotlib.pyplot as plt
 import torch
 
 
@@ -153,16 +153,17 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
 
     # TODO: Add any information you might want to save for plotting
     logging_dict = {
-        'loss_per_batch': []
+        'loss_per_batch': [],
     }
     best_model = None
     for epoch_number in range(0, epochs):
-        for batch_inputs, batch_labels in tqdm(cifar10_loader['train']):
+        logging_dict['loss_per_batch'].append([])
+        for batch_inputs, batch_labels in tqdm(cifar10_loader['train'], desc=f"Epoch {epoch_number}"):
             out = model.forward(batch_inputs)
 
             # Compute loss
             loss = loss_module.forward(out, batch_labels)
-            logging_dict['loss_per_batch'].append(loss)
+            logging_dict['loss_per_batch'][epoch_number].append(loss)
 
             # Do backpropagation
             dout = loss_module.backward(out, batch_labels)
@@ -186,9 +187,7 @@ def train(hidden_dims, lr, batch_size, epochs, seed, data_dir):
         val_accuracies.append(acc)
 
     # TODO: Test best model
-    print(val_accuracies)
     test_accuracy = evaluate_model(best_model, cifar10_loader['test'])
-    print(test_accuracy)
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -221,6 +220,16 @@ if __name__ == '__main__':
     args = parser.parse_args()
     kwargs = vars(args)
 
-    train(**kwargs)
+    model, val_accuracies, test_accuracy, logging_dict = train(**kwargs)
     # Feel free to add any additional functions, such as plotting of the loss curve here
-    
+    plt.xlabel("Epoch no.")
+    plt.title("Numpy model loss")
+    plt.ylabel("Loss")
+    plt.plot(np.array(logging_dict['loss_per_batch']).mean(axis=1))
+    plt.show()
+
+    plt.xlabel("Epoch no.")
+    plt.title("Numpy model accuracy")
+    plt.ylabel("Validation accuracy")
+    plt.plot(val_accuracies)
+    plt.show()
