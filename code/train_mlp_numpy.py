@@ -224,13 +224,14 @@ if __name__ == '__main__':
     # Feel free to add any additional functions, such as plotting of the loss curve here
     x_point = np.arange(1, kwargs['epochs'] + 1)
     plt.xlabel("Epoch no.")
-    plt.title("Numpy model average loss")
-    plt.ylabel("Loss")
+    plt.title("Numpy model - mean loss per epoch")
+    plt.ylabel("Mean Loss")
     plt.plot(x_point, np.array(logging_dict['loss_per_batch']).mean(axis=1))
     plt.show()
 
     plt.xlabel("Epoch no.")
-    plt.title("Numpy model accuracy")
-    plt.ylabel("Validation accuracy")
+    plt.title("Numpy model - validation accuracy")
+    plt.ylabel("Accuracy")
     plt.plot(x_point, val_accuracies)
     plt.show()
+    print(f"Test accuracy is: {test_accuracy}")

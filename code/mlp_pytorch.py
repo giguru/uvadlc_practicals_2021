@@ -67,7 +67,6 @@ class MLP(nn.Module):
             nn.init.kaiming_normal_(lin_layer.weight, nonlinearity="relu")
             layers.append(lin_layer)
             if use_batch_norm:
-                # TODO check which batch norm to use
                 layers.append(nn.BatchNorm1d(num_features=dims[i]))
             layers.append(nn.ReLU())
 
