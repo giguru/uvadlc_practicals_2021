@@ -171,7 +171,8 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
 
     # TODO: Add any information you might want to save for plotting
     logging_info = {
-        'loss_per_batch': []
+        'loss_per_batch': [],
+        'training_acc': [],
     }
 
     best_model = None
@@ -187,6 +188,7 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
             optimizer.step()
 
         # Do validation
+        logging_info['training_acc'].append(evaluate_model(model, cifar10_loader['train']))
         acc = evaluate_model(model, cifar10_loader['validation'])
         if best_model is None or acc > np.max(val_accuracies):
             best_model = deepcopy(model)

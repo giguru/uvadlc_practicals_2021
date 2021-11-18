@@ -27,11 +27,12 @@ from mlp_pytorch import MLP
 import cifar10_utils
 import train_mlp_pytorch
 
-import torch
+import time
 import torch.nn as nn
 import torch.optim as optim
 # Hint: you might want to import some plotting libraries or similar
 # You are also allowed to use libraries here which are not in the provided environment.
+import matplotlib.pyplot as plt
 
 
 def train_models(results_filename):
@@ -51,9 +52,34 @@ def train_models(results_filename):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
+    lr = 0.1
+    epochs = 20
     # TODO: Run all hyperparameter configurations as requested
-    results = None
-    # TODO: Save all results in a file with the name 'results_filename'. This can e.g. by a json file
+    n_hiddens = [
+        [128],
+        [256, 128],
+        [512, 256, 128],
+    ]
+    results = {}
+    for n_hidden in n_hiddens:
+        for use_batch_norm in [True, False]:
+            start = time.time()
+            save_key = f"hidden-{n_hidden}-batch_norm-{use_batch_norm}-lr-{lr}-epochs-{epochs}"
+            print(f"Training {save_key}")
+            res = train_mlp_pytorch.train(hidden_dims=n_hidden,
+                                          lr=lr,
+                                          epochs=epochs,
+                                          use_batch_norm=use_batch_norm,
+                                          batch_size=128,
+                                          seed=42,
+                                          data_dir='data/')
+            end = time.time()
+            # Skip saving the model in the results file
+            results[save_key] = list(res[1:]) + [end - start]
+
+    with open(results_filename, 'wb') as f:
+        np.save(f, results)
+        f.close()
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -75,7 +101,35 @@ def plot_results(results_filename):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    pass
+    with open(results_filename, 'rb') as f:
+        results = np.load(f, allow_pickle=True).item()
+        legend_kwargs = {
+            'loc': 'upper center',
+            'bbox_to_anchor': (0.5, -0.05),
+            'fancybox': True,
+            'shadow': True,
+            'ncol': 1
+        }
+        plt.title("Torch model - mean loss per epoch")
+        plt.xlabel("Epoch no.")
+        plt.ylabel("Mean loss")
+        x_point = np.arange(1, 20 + 1)
+        for legend_name, data in results.items():
+            plt.plot(x_point,
+                     np.array(data[2]['loss_per_batch']).mean(axis=1),
+                     label=legend_name)
+        plt.legend(**legend_kwargs)
+        plt.show()
+
+        plt.xlabel("Epoch no.")
+        plt.title("Torch model - validation accuracy")
+        plt.ylabel("Accuracy")
+        for legend_name, data in results.items():
+            plt.plot(x_point, data[0], label=legend_name)
+        plt.legend(**legend_kwargs)
+        plt.show()
+        for legend_name, data in results.items():
+            print(f"Test accuracy for {legend_name} is: {data[1]}")
     #######################
     # END OF YOUR CODE    #
     #######################
