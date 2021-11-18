@@ -128,6 +128,15 @@ def plot_results(results_filename):
             plt.plot(x_point, data[0], label=legend_name)
         plt.legend(**legend_kwargs)
         plt.show()
+
+        plt.xlabel("Epoch no.")
+        plt.title("Torch model - training accuracy")
+        plt.ylabel("Accuracy")
+        for legend_name, data in results.items():
+            plt.plot(x_point, data[2]['training_acc'], label=legend_name)
+        plt.legend(**legend_kwargs)
+        plt.show()
+
         for legend_name, data in results.items():
             print(f"Test accuracy for {legend_name} is: {data[1]}")
     #######################
