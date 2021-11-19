@@ -266,9 +266,6 @@ class SoftMaxModule(object):
         outer_product = np.einsum('ij,ik->ijk', self.last_out, self.last_out)
         d_softmax = np.einsum('ij,jk->ijk', self.last_out, I) - outer_product
         dx = np.einsum('ijk,ik->ij', d_softmax, dout)
-
-        # TODO ask Teaching assistant how to do it without einsum
-        # dx = self.last_out * (dout - (dout * self.last_out))
         #######################
         # END OF YOUR CODE    #
         #######################
