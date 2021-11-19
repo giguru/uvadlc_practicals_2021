@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH -t 1:00:00
+#SBATCH -N 1
+#SBATCH --gpus=1
+#SBATCH -p gpu_short
+
+#SBATCH --mem=5G
+
+module load 2021
+
+pip3 install --user torch torchvision matplotlib
+
+python3 train_mlp_pytorch.py

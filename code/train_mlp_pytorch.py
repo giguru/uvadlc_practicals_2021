@@ -87,8 +87,10 @@ def evaluate_model(model, data_loader):
     # PUT YOUR CODE HERE  #
     #######################
     model.eval()
-    preds_val, labels_val = None, torch.tensor([])
+    preds_val, labels_val = None, torch.tensor([]).to(model.device)
     for batch_inputs, batch_labels in tqdm(data_loader):
+        batch_inputs = batch_inputs.to(model.device)
+        batch_labels = batch_labels.to(model.device)
         out = model.forward(batch_inputs)
         preds_val = torch.vstack((preds_val, out)) if preds_val is not None else out
         labels_val = torch.concat((labels_val, batch_labels))
@@ -153,7 +155,7 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-
+    print("Device: ", device)
     # TODO: Initialize model and loss module
     model = MLP(n_inputs=32*32*3,
                 n_hidden=hidden_dims,
@@ -180,6 +182,8 @@ def train(hidden_dims, lr, use_batch_norm, batch_size, epochs, seed, data_dir):
         model.train()
         logging_info['loss_per_batch'].append([])
         for batch_inputs, batch_labels in tqdm(cifar10_loader['train'], desc=f"Epoch {epoch_number}"):
+            batch_inputs = batch_inputs.to(device)
+            batch_labels = batch_labels.to(device)
             optimizer.zero_grad()
             output = model.forward(batch_inputs)
             loss = loss_module(output, batch_labels)
