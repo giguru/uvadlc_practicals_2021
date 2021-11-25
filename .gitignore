@@ -130,3 +130,6 @@ dmypy.json
 
 # Assignment 1 dataset
 assignment_1/data/
+
+.DS_Store
+**/.DS_Store
