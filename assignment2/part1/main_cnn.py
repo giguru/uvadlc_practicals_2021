@@ -31,7 +31,7 @@ import torchvision
 import torchvision.models as models
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
-
+from tqdm import tqdm
 from augmentations import gaussian_noise_transform, gaussian_blur_transform, contrast_transform, jpeg_transform
 from cifar10_utils import get_train_validation_set, get_test_set
 
@@ -106,7 +106,9 @@ def train_model(model, lr, batch_size, epochs, data_dir, checkpoint_name, device
     #######################
     
     # Load the datasets
-    pass
+    train_dataset, val_dataset = get_train_validation_set(data_dir=data_dir)
+    train_dataloader = data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
+    validation_dataloader = data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
 
     # Initialize the optimizers and learning rate scheduler. 
     # We provide a recommend setup, which you are allowed to change if interested.
@@ -115,7 +117,30 @@ def train_model(model, lr, batch_size, epochs, data_dir, checkpoint_name, device
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[90, 135], gamma=0.1)
     
     # Training loop with validation after each epoch. Save the best model, and remember to use the lr scheduler.
-    pass
+    logging_info = {}
+    best_model = None
+    for epoch_number in range(0, epochs):
+        model.train()
+        logging_info['loss_per_batch'].append([])
+        for batch_inputs, batch_labels in tqdm(train_dataloader, desc=f"Epoch {epoch_number}"):
+            batch_inputs = batch_inputs.to(device)
+            batch_labels = batch_labels.to(device)
+            optimizer.zero_grad()
+            output = model.forward(batch_inputs)
+            loss = loss_module(output, batch_labels)
+            logging_info['loss_per_batch'][epoch_number].append(loss.item())
+            loss.backward()
+            optimizer.step()
+
+        # Do validation
+        logging_info['training_acc'].append(evaluate_model(model, cifar10_loader['train']))
+        acc = evaluate_model(model, cifar10_loader['validation'])
+        if best_model is None or acc > np.max(val_accuracies):
+            best_model = deepcopy(model)
+        val_accuracies.append(acc)
+
+    # TODO: Test best model
+    test_accuracy = evaluate_model(model, cifar10_loader['test'])
     
     # Load best model and return it.
     pass
