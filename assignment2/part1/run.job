@@ -1,0 +1,11 @@
+#!/bin/bash
+#SBATCH -t 3:00:00
+#SBATCH -N 1
+#SBATCH --gpus=1
+#SBATCH -p gpu
+#SBATCH --mem=20G
+
+module load 2021
+pip3 install --user torch torchvision matplotlib
+
+python3 main_cnn.py --model_name=densenet121 --epochs=150 --batch_size=64

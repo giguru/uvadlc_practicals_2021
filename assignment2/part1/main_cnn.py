@@ -21,7 +21,7 @@ import os
 import json
 import argparse
 import numpy as np
-
+import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -34,6 +34,10 @@ from torchvision import transforms
 from tqdm import tqdm
 from augmentations import gaussian_noise_transform, gaussian_blur_transform, contrast_transform, jpeg_transform
 from cifar10_utils import get_train_validation_set, get_test_set
+from copy import deepcopy
+
+
+logger = logging.getLogger(__name__)
 
 
 def set_seed(seed):
@@ -104,23 +108,33 @@ def train_model(model, lr, batch_size, epochs, data_dir, checkpoint_name, device
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    
+    model = model.to(device)
+
     # Load the datasets
     train_dataset, val_dataset = get_train_validation_set(data_dir=data_dir)
     train_dataloader = data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, drop_last=True)
-    validation_dataloader = data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
+    validation_dataloader = data.DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False, drop_last=False)
 
     # Initialize the optimizers and learning rate scheduler. 
     # We provide a recommend setup, which you are allowed to change if interested.
     optimizer = torch.optim.SGD(model.parameters(), lr=lr,
                                 momentum=0.9, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[90, 135], gamma=0.1)
-    
-    # Training loop with validation after each epoch. Save the best model, and remember to use the lr scheduler.
-    logging_info = {}
+
+    # Training loop with validation after each epoch. and remember to use the lr scheduler.
+    loss_module = nn.CrossEntropyLoss()
+    loss_module.to(device)
+
+    logging_info = {
+        'loss_per_batch': [],
+        'training_acc': []
+    }
     best_model = None
+    val_accuracies = []
+    logger.info('Start training...')
     for epoch_number in range(0, epochs):
         model.train()
+        model = model.to(device)
         logging_info['loss_per_batch'].append([])
         for batch_inputs, batch_labels in tqdm(train_dataloader, desc=f"Epoch {epoch_number}"):
             batch_inputs = batch_inputs.to(device)
@@ -131,20 +145,26 @@ def train_model(model, lr, batch_size, epochs, data_dir, checkpoint_name, device
             logging_info['loss_per_batch'][epoch_number].append(loss.item())
             loss.backward()
             optimizer.step()
+            scheduler.step()
 
+        # Optionally compute accuracy on training set
+        # logging_info['training_acc'].append(evaluate_model(model, train_dataloader, device))
         # Do validation
-        logging_info['training_acc'].append(evaluate_model(model, cifar10_loader['train']))
-        acc = evaluate_model(model, cifar10_loader['validation'])
+        acc = evaluate_model(model, validation_dataloader, device)
         if best_model is None or acc > np.max(val_accuracies):
-            best_model = deepcopy(model)
+            logger.info(f"New best model at epoch {epoch_number} with validation acc {acc}")
+            best_model = deepcopy(model.to('cpu'))
         val_accuracies.append(acc)
 
-    # TODO: Test best model
-    test_accuracy = evaluate_model(model, cifar10_loader['test'])
-    
+    # Save the best model
+    torch.save(best_model.state_dict(), checkpoint_name)
+    logging_info['validation_acc'] = val_accuracies
+    with open(f"{checkpoint_name}-train-logging.json", 'w') as f:
+        json.dump(logging_info, f)
+
     # Load best model and return it.
-    pass
-    
+    model = best_model
+
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -169,7 +189,20 @@ def evaluate_model(model, data_loader, device):
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-    pass
+    model.eval()
+    with torch.no_grad():
+        preds_val, labels_val = None, torch.tensor([]).to(device)
+        for batch_inputs, batch_labels in tqdm(data_loader):
+            batch_inputs = batch_inputs.to(device)
+            batch_labels = batch_labels.to(device)
+            out = model.forward(batch_inputs)
+            preds_val = torch.vstack((preds_val, out)) if preds_val is not None else out
+            labels_val = torch.concat((labels_val, batch_labels))
+
+        # Use 'sum()' to count the number of True values in the resulting array
+        accuracy = (torch.argmax(preds_val, dim=1) == labels_val).sum()
+        accuracy = accuracy.item() / len(labels_val)
+
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -200,7 +233,24 @@ def test_model(model, batch_size, data_dir, device, seed):
     #######################
     set_seed(seed)
     test_results = {}
-    pass
+    corruptions = {
+        'gaussian_noise': gaussian_noise_transform,
+        'gaussian_blur': gaussian_blur_transform,
+        'contrast': contrast_transform,
+        'jpeg': jpeg_transform
+    }
+    data_loader_args = {'batch_size': batch_size, 'shuffle': False, 'drop_last': False}
+
+    # First test without corruptions
+    test_results['none'] = evaluate_model(model, data.DataLoader(dataset=get_test_set(data_dir), **data_loader_args), device)
+
+    # Then test with corruptions over different severities
+    for k, c_func in corruptions.items():
+        for severity in [1, 2, 3, 4, 5]:
+            augmentation = c_func(severity) if c_func else None
+            test_dataloader = data.DataLoader(dataset=get_test_set(data_dir, augmentation),
+                                              **data_loader_args)
+            test_results[f"{k}-{severity}"] = evaluate_model(model, test_dataloader, device)
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -232,7 +282,17 @@ def main(model_name, lr, batch_size, epochs, data_dir, seed):
     #######################
     device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     set_seed(seed)
-    pass
+    checkpoint_name = f'saved-{model_name}'
+    has_checkpoint = os.path.exists(checkpoint_name)
+    model = get_model(model_name).to(device)
+    if has_checkpoint:
+        model.load_state_dict(torch.load(checkpoint_name))
+    else:
+        model = train_model(model, lr, batch_size, epochs, data_dir, checkpoint_name, device)
+
+    test_results = test_model(model=model, batch_size=batch_size, data_dir=data_dir, device=device, seed=seed)
+    print(test_results)
+
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -270,4 +330,5 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     kwargs = vars(args)
+    print(kwargs)
     main(**kwargs)
