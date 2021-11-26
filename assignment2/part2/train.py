@@ -26,6 +26,7 @@ from torch.utils.data import DataLoader
 
 from dataset import TextDataset, text_collate_fn
 from model import TextGenerationModel
+import json
 
 
 def set_seed(seed):
@@ -69,12 +70,43 @@ def train(args):
     data_loader = DataLoader(dataset, args.batch_size, 
                              shuffle=True, drop_last=True, pin_memory=True,
                              collate_fn=text_collate_fn)
+
+    args.vocabulary_size = dataset.vocabulary_size
+    device = args.device
     # Create model
-    model = ...
+    model = TextGenerationModel(args)
     # Create optimizer
-    optimizer = ...
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     # Training loop
-    pass
+    loss_module = nn.CrossEntropyLoss()
+    loss_module.to(device)
+
+    logging_info = {
+        'loss_per_batch': [],
+        'training_acc': []
+    }
+    torch.autograd.set_detect_anomaly(True)
+    for epoch_number in range(0, args.num_epochs):
+        model.train()
+        logging_info['loss_per_batch'].append([])
+        for batch_inputs, batch_labels in tqdm(data_loader, desc=f"Epoch {epoch_number}"):
+            batch_inputs = batch_inputs.to(device)
+            batch_labels = batch_labels.to(device)
+            optimizer.zero_grad()
+            output = model.forward(batch_inputs)
+
+            losses = []
+            for t in range(0, output.shape[0]):
+                losses.append(loss_module(output[t], batch_labels[t]))
+            loss = sum(losses) / len(batch_inputs)
+            logging_info['loss_per_batch'][epoch_number].append(loss.item())
+            loss.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
+            optimizer.step()
+
+
+    with open(f"lstm-train-logging.json", 'w') as f:
+        json.dump(logging_info, f)
     #######################
     # END OF YOUR CODE    #
     #######################

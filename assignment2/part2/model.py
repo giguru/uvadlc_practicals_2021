@@ -23,6 +23,7 @@ class LSTM(nn.Module):
     """
     Own implementation of LSTM cell.
     """
+
     def __init__(self, lstm_hidden_dim, embedding_size):
         """
         Initialize all parameters of the LSTM class.
@@ -40,7 +41,27 @@ class LSTM(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        # gate weights
+        tensor_for_x = lambda: torch.zeros(size=(self.embed_dim, self.hidden_dim), requires_grad=True)
+        tensor_for_h = lambda: torch.zeros(size=(self.hidden_dim, self.hidden_dim), requires_grad=True)
+        tensor_for_bias = lambda: torch.zeros(self.hidden_dim, requires_grad=True)
+
+        self.w_gx = nn.Parameter(tensor_for_x())
+        self.w_gh = nn.Parameter(tensor_for_h())
+        self.bias_g = nn.Parameter(tensor_for_bias())
+        # input weights
+        self.w_ix = nn.Parameter(tensor_for_x())
+        self.w_ih = nn.Parameter(tensor_for_h())
+        self.bias_i = nn.Parameter(tensor_for_bias())
+        # forget weights
+        self.w_fx = nn.Parameter(tensor_for_x())
+        self.w_fh = nn.Parameter(tensor_for_h())
+        self.bias_f = nn.Parameter(tensor_for_bias())
+        # output weights
+        self.w_ox = nn.Parameter(tensor_for_x())
+        self.w_oh = nn.Parameter(tensor_for_h())
+        self.bias_o = nn.Parameter(tensor_for_bias())
+
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -62,7 +83,16 @@ class LSTM(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        a, b = -1 / math.sqrt(self.hidden_dim), 1 / math.sqrt(self.hidden_dim)
+        for name, params in self.named_parameters():
+            # continue
+            if name == 'bias_f':
+                # The reason for this is that for learning long-term dependencies, it is good practice to initialize the
+                # bias of the forget gate to a larger value, such that the model starts off with remembering old states
+                # and learns what to forget (rather than vice versa).
+                self.bias_f.data = nn.init.uniform(self.bias_f.data, a + 1, b + 1)
+            else:
+                params.data = nn.init.uniform(params.data, a, b)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -85,7 +115,25 @@ class LSTM(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        I, B, H = embeds.shape
+        self.h = [None] * I
+        self.c = [None] * I
+
+        h0 = torch.zeros((B, self.hidden_dim))
+        c0 = torch.zeros((B, self.hidden_dim))
+
+        for i in range(I):  # loop over input length
+            x = embeds[i]
+            prev_h = self.h[i-1] if i > 0 else h0
+            prev_c = self.c[i-1] if i > 0 else c0
+            g = torch.tanh(torch.matmul(x, self.w_gx) + torch.matmul(prev_h, self.w_gh) + self.bias_g)
+            i_2 = torch.sigmoid(torch.matmul(x, self.w_ix) + torch.matmul(prev_h, self.w_ih) + self.bias_i)
+            f = torch.sigmoid(torch.matmul(x, self.w_fx) + torch.matmul(prev_h, self.w_fh) + self.bias_f)
+            o = torch.sigmoid(torch.matmul(x, self.w_ox) + torch.matmul(prev_h, self.w_oh) + self.bias_o)
+            self.c[i] = g * i_2 + prev_c * f
+            self.h[i] = torch.tanh(prev_c * o)
+
+        return torch.cat(self.h).view(I, B, self.hidden_dim)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -97,6 +145,7 @@ class TextGenerationModel(nn.Module):
     It should take care of the character embedding,
     and linearly maps the output of the LSTM to your vocabulary.
     """
+
     def __init__(self, args):
         """
         Initializing the components of the TextGenerationModel.
@@ -114,7 +163,10 @@ class TextGenerationModel(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        self.embedding = nn.Embedding(args.vocabulary_size, args.embedding_size)
+        self.lstm = LSTM(lstm_hidden_dim=args.lstm_hidden_dim, embedding_size=args.embedding_size)
+        self.linear = nn.Linear(in_features=args.lstm_hidden_dim, out_features=args.vocabulary_size)
+
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -134,7 +186,10 @@ class TextGenerationModel(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        one = self.embedding(x)
+        two = self.lstm(one)
+        three = self.linear(two)
+        return three
         #######################
         # END OF YOUR CODE    #
         #######################
