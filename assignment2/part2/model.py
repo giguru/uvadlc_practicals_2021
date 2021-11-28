@@ -119,8 +119,8 @@ class LSTM(nn.Module):
         self.h = [None] * I
         self.c = [None] * I
 
-        h0 = torch.zeros((B, self.hidden_dim))
-        c0 = torch.zeros((B, self.hidden_dim))
+        h0 = torch.zeros((B, self.hidden_dim)).to(embeds.device)
+        c0 = torch.zeros((B, self.hidden_dim)).to(embeds.device)
 
         for i in range(I):  # loop over input length
             x = embeds[i]
@@ -133,7 +133,7 @@ class LSTM(nn.Module):
             self.c[i] = g * i_2 + prev_c * f
             self.h[i] = torch.tanh(prev_c * o)
 
-        return torch.cat(self.h).view(I, B, self.hidden_dim)
+        return torch.cat(self.h).view(I, B, self.hidden_dim).to(embeds.device)
         #######################
         # END OF YOUR CODE    #
         #######################

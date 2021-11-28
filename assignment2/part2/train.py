@@ -75,6 +75,7 @@ def train(args):
     device = args.device
     # Create model
     model = TextGenerationModel(args)
+    model = model.to(device)
     # Create optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     # Training loop
@@ -90,8 +91,7 @@ def train(args):
         model.train()
         logging_info['loss_per_batch'].append([])
         for batch_inputs, batch_labels in tqdm(data_loader, desc=f"Epoch {epoch_number}"):
-            batch_inputs = batch_inputs.to(device)
-            batch_labels = batch_labels.to(device)
+            batch_inputs, batch_labels = batch_inputs.to(device), batch_labels.to(device)
             optimizer.zero_grad()
             output = model.forward(batch_inputs)
 
@@ -104,7 +104,7 @@ def train(args):
             nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
             optimizer.step()
 
-
+    torch.save(model.state_dict(), "lstm-model")
     with open(f"lstm-train-logging.json", 'w') as f:
         json.dump(logging_info, f)
     #######################
