@@ -190,6 +190,7 @@ def evaluate_model(model, data_loader, device):
     # PUT YOUR CODE HERE  #
     #######################
     model.eval()
+    model.to(device)
     with torch.no_grad():
         preds_val, labels_val = None, torch.tensor([]).to(device)
         for batch_inputs, batch_labels in tqdm(data_loader):
@@ -286,7 +287,7 @@ def main(model_name, lr, batch_size, epochs, data_dir, seed):
     has_checkpoint = os.path.exists(checkpoint_name)
     model = get_model(model_name).to(device)
     if has_checkpoint:
-        model.load_state_dict(torch.load(checkpoint_name))
+        model.load_state_dict(torch.load(checkpoint_name, map_location=device))
     else:
         model = train_model(model, lr, batch_size, epochs, data_dir, checkpoint_name, device)
 

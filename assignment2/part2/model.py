@@ -90,9 +90,9 @@ class LSTM(nn.Module):
                 # The reason for this is that for learning long-term dependencies, it is good practice to initialize the
                 # bias of the forget gate to a larger value, such that the model starts off with remembering old states
                 # and learns what to forget (rather than vice versa).
-                self.bias_f.data = nn.init.uniform(self.bias_f.data, a + 1, b + 1)
+                nn.init.uniform_(self.bias_f.data, a + 1, b + 1)
             else:
-                params.data = nn.init.uniform(params.data, a, b)
+                nn.init.uniform_(params.data, a, b)
         #######################
         # END OF YOUR CODE    #
         #######################

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -t 3:00:00
+#SBATCH -t 6:00:00
 #SBATCH -N 1
 #SBATCH --gpus=1
 #SBATCH -p gpu
@@ -8,4 +8,4 @@
 module load 2021
 pip3 install --user torch torchvision matplotlib
 
-python3 main_cnn.py --model_name=densenet121 --epochs=150 --batch_size=64
+python3 main_cnn.py --model_name=vgn11 --epochs=150 --batch_size=128

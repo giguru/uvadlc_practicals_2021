@@ -95,14 +95,32 @@ def train(args):
             optimizer.zero_grad()
             output = model.forward(batch_inputs)
 
+            # Take the mean of the losses over the 30 time steps
             losses = []
             for t in range(0, output.shape[0]):
                 losses.append(loss_module(output[t], batch_labels[t]))
             loss = sum(losses) / len(batch_inputs)
+
             logging_info['loss_per_batch'][epoch_number].append(loss.item())
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
             optimizer.step()
+
+        # get training accuracy
+        model.eval()
+        with torch.no_grad():
+            preds_val, labels_val = None, torch.tensor([]).to(device)
+            for batch_inputs, batch_labels in tqdm(data_loader):
+                batch_inputs = batch_inputs.to(device)
+                batch_labels = batch_labels.to(device)
+                out = model.forward(batch_inputs)
+                preds_val = torch.vstack((preds_val, out)) if preds_val is not None else out
+                labels_val = torch.concat((labels_val, batch_labels))
+
+            # Use 'sum()' to count the number of True values in the resulting array
+            accuracy = (torch.argmax(preds_val, dim=1) == labels_val).sum()
+            logging_info['training_acc'].append(accuracy.item() / len(labels_val))
+
 
     torch.save(model.state_dict(), "lstm-model")
     with open(f"lstm-train-logging.json", 'w') as f:
