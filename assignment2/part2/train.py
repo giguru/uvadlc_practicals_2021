@@ -118,8 +118,8 @@ def train(args):
                 labels_val = torch.concat((labels_val, batch_labels))
 
             # Use 'sum()' to count the number of True values in the resulting array
-            accuracy = (torch.argmax(preds_val, dim=1) == labels_val).sum()
-            logging_info['training_acc'].append(accuracy.item() / len(labels_val))
+            accuracy = (torch.argmax(preds_val, dim=2) == labels_val).sum().item()
+            logging_info['training_acc'].append(accuracy / (labels_val.shape[0] * labels_val.shape[1]))
 
 
     torch.save(model.state_dict(), "lstm-model")
