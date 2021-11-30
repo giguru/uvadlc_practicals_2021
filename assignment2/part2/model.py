@@ -15,6 +15,7 @@
 ###############################################################################
 
 import math
+import random
 import torch
 import torch.nn as nn
 
@@ -163,6 +164,7 @@ class TextGenerationModel(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
+        self.args = args
         self.embedding = nn.Embedding(args.vocabulary_size, args.embedding_size)
         self.lstm = LSTM(lstm_hidden_dim=args.lstm_hidden_dim, embedding_size=args.embedding_size)
         self.linear = nn.Linear(in_features=args.lstm_hidden_dim, out_features=args.vocabulary_size)
@@ -211,7 +213,24 @@ class TextGenerationModel(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        from dataset import TextDataset
+        dataset = TextDataset(self.args.txt_file, self.args.input_seq_length)
+
+        with torch.no_grad():
+            sentences = []
+            for b in range(batch_size):
+                s = random.choice(range(dataset.vocabulary_size))
+                chars = [s]
+                for i in range(sample_length - 1):
+                    tens = torch.LongTensor([chars])
+                    res = self.forward(tens)[0][0]
+                    if temperature == 0:
+                        chars.append(torch.argmax(res.softmax(dim=0)).item())
+                    else:
+                        chars.append(torch.argmax((res / temperature).softmax(dim=0)).item())
+                sentences.append(dataset.convert_to_string(chars))
+
+        return sentences
         #######################
         # END OF YOUR CODE    #
         #######################
