@@ -1,11 +1,12 @@
 #!/bin/bash
-#SBATCH -t 6:00:00
+#SBATCH -t 2:00:00
 #SBATCH -N 1
-#SBATCH --gpus=1
+#SBATCH --gpus=2
 #SBATCH -p gpu
-#SBATCH --mem=20G
+#SBATCH --mem=15G
 
 module load 2021
 pip3 install --user torch torchvision matplotlib
 
+export PYTHONIOENCODING=utf8
 python3 train.py --txt_file=./assets/book_EN_democracy_in_the_US.txt

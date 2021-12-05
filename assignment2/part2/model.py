@@ -103,7 +103,7 @@ class LSTM(nn.Module):
         Forward pass of LSTM.
 
         Args:
-            embeds: embedded input sequence with shape [input length, batch size, hidden dimension].
+            embeds: embedded input sequence with shape [input length, batch size, embedding size].
 
         TODO:
           Specify the LSTM calculations on the input sequence.
@@ -132,7 +132,7 @@ class LSTM(nn.Module):
             f = torch.sigmoid(torch.matmul(x, self.w_fx) + torch.matmul(prev_h, self.w_fh) + self.bias_f)
             o = torch.sigmoid(torch.matmul(x, self.w_ox) + torch.matmul(prev_h, self.w_oh) + self.bias_o)
             self.c[i] = g * i_2 + prev_c * f
-            self.h[i] = torch.tanh(prev_c * o)
+            self.h[i] = torch.tanh(self.c[i]) * o
 
         return torch.cat(self.h).view(I, B, self.hidden_dim).to(embeds.device)
         #######################
@@ -220,15 +220,17 @@ class TextGenerationModel(nn.Module):
             sentences = []
             for b in range(batch_size):
                 s = random.choice(range(dataset.vocabulary_size))
-                chars = [s]
+                chars = [[s]]
                 for i in range(sample_length - 1):
-                    tens = torch.LongTensor([chars])
-                    res = self.forward(tens)[0][0]
+                    tens = torch.LongTensor(chars).to(self.args.device)
+
+                    res = self.forward(tens)[i][0]
                     if temperature == 0:
-                        chars.append(torch.argmax(res.softmax(dim=0)).item())
+                        new_char_idx = torch.argmax(res).item()
                     else:
-                        chars.append(torch.argmax((res / temperature).softmax(dim=0)).item())
-                sentences.append(dataset.convert_to_string(chars))
+                        new_char_idx = torch.argmax((res / temperature).softmax(dim=0)).item()
+                    chars.append([new_char_idx])
+                sentences.append(dataset.convert_to_string([c[0] for c in chars]))
 
         return sentences
         #######################

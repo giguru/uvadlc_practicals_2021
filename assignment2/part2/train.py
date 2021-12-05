@@ -74,10 +74,9 @@ def train(args):
     args.vocabulary_size = dataset.vocabulary_size
     device = args.device
     # Create model
-    model = TextGenerationModel(args)
-    model = model.to(device)
+    model = TextGenerationModel(args).to(device)
     # Create optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
     # Training loop
     loss_module = nn.CrossEntropyLoss()
     loss_module.to(device)
@@ -92,7 +91,6 @@ def train(args):
         logging_info['loss_per_batch'].append([])
         for batch_inputs, batch_labels in tqdm(data_loader, desc=f"Epoch {epoch_number}"):
             batch_inputs, batch_labels = batch_inputs.to(device), batch_labels.to(device)
-            optimizer.zero_grad()
             output = model.forward(batch_inputs)
 
             # Take the mean of the losses over the 30 time steps
@@ -105,6 +103,7 @@ def train(args):
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
             optimizer.step()
+            optimizer.zero_grad()
 
         # get training accuracy
         model.eval()
@@ -155,7 +154,6 @@ if __name__ == "__main__":
     train(args)
 
     # Generate
-    args.vocabulary_size = 86
     model = TextGenerationModel(args)
-    model.load_state_dict(torch.load('lstm-model-1', map_location=args.device))
-    model.sample()
+    model.load_state_dict(torch.load('lstm-model', map_location=args.device))
+    print(model.sample())
