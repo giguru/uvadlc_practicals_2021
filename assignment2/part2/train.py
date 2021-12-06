@@ -120,8 +120,8 @@ def train(args):
             accuracy = (torch.argmax(preds_val, dim=2) == labels_val).sum().item()
             logging_info['training_acc'].append(accuracy / (labels_val.shape[0] * labels_val.shape[1]))
 
-            if epoch_number % 5 == 0:
-                print(model.sample())
+            if epoch_number == 0 or (epoch_number + 1) % 5 == 0:
+                print(f"Epoch {epoch_number}", model.sample(sample_length=150), flush=True)
 
     torch.save(model.state_dict(), "lstm-model")
     with open(f"lstm-train-logging.json", 'w') as f:
@@ -151,9 +151,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Use GPU if available, else use CPU
-    train(args)
+    # train(args)
 
     # Generate
+    args.vocabulary_size = 84
     model = TextGenerationModel(args)
-    model.load_state_dict(torch.load('lstm-model', map_location=args.device))
-    print(model.sample())
+    model.load_state_dict(torch.load('models/lstm-model-working', map_location=args.device))
+
+    print("2.0", model.sample(temperature=2.0, sample_length=100))

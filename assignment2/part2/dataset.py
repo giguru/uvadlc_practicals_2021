@@ -28,7 +28,7 @@ class TextDataset(data.Dataset):
         self._seq_length = seq_length
         self._step_size = step_size
         self._random_select = random_select
-        self._data = open(filename, 'r').read()
+        self._data = open(filename, 'r', encoding="utf-8").read()
         self._chars = sorted(list(set(self._data)))
         self._data_size, self._vocabulary_size = len(self._data), len(self._chars)
         print(f"Initialize dataset with {self._data_size} characters, {self._vocabulary_size} unique.")

@@ -167,6 +167,8 @@ class TextGenerationModel(nn.Module):
         self.args = args
         self.embedding = nn.Embedding(args.vocabulary_size, args.embedding_size)
         self.lstm = LSTM(lstm_hidden_dim=args.lstm_hidden_dim, embedding_size=args.embedding_size)
+
+        # Used the nn.Linear here. In the assignment, it seems like you only cannot used it for the LSTM component
         self.linear = nn.Linear(in_features=args.lstm_hidden_dim, out_features=args.vocabulary_size)
 
         #######################
@@ -196,7 +198,7 @@ class TextGenerationModel(nn.Module):
         # END OF YOUR CODE    #
         #######################
 
-    def sample(self, batch_size=4, sample_length=30, temperature=0.):
+    def sample(self, batch_size=5, sample_length=30, temperature=0.):
         """
         Sampling from the text generation model.
 
