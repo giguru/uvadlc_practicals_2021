@@ -8,4 +8,5 @@
 module load 2021
 pip3 install --user torch torchvision matplotlib
 
+export PYTHONIOENCODING=utf8
 python3 main_cnn.py --model_name=vgg11 --epochs=250 --batch_size=128
