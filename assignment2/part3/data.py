@@ -24,6 +24,8 @@ from torch_geometric.datasets import QM9
 from torch_geometric.utils import to_dense_adj
 
 # Constants for the QM9 problem
+from typing import Tuple
+
 MAX_NUM_NODES = 29  # The larget molecule has 29 atoms
 Z_ONE_HOT_DIM = 5  # The one hot encoding of the element (z) has 5 unique values
 EDGE_ATTR_DIM = 4  # The one hot encoding of the edges have 4 unique values
@@ -55,7 +57,7 @@ def get_labels(molecules: Batch) -> torch.Tensor:
     return molecules.y[:, LABEL_INDEX]
 
 
-def get_qm9(data_dir: str, device="cpu") -> tuple[Dataset, Dataset, Dataset]:
+def get_qm9(data_dir: str, device="cpu") -> Tuple[Dataset, Dataset, Dataset]:
     """Download the QM9 dataset from pytorch geometric. Put it onto the device. Split it up into train / validation / test.
 
     Args:

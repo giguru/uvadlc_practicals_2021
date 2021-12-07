@@ -46,7 +46,18 @@ class MLP(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        super().__init__()
+        layers = []
+        dims = [n_inputs] + n_hidden
+        for i in range(1, len(dims)):
+            lin_layer = nn.Linear(in_features=dims[i - 1], out_features=dims[i])
+            # TODO how to initialize?
+            nn.init.kaiming_normal_(lin_layer.weight, nonlinearity='relu')
+            layers.append(lin_layer)
+            layers.append(nn.ReLU())
+
+        layers.append(nn.Linear(in_features=dims[-1], out_features=n_outputs))
+        self.layers = nn.Sequential(*layers)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -65,7 +76,7 @@ class MLP(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        out = self.layers(x)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -108,7 +119,29 @@ class GNN(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        pass
+        super(GNN, self).__init__()
+        self.n_node_features = n_node_features
+        self.n_edge_features = n_edge_features
+        self.n_hidden = n_hidden
+        self.n_output = n_output
+        layers = [
+            nn.Linear(in_features=n_node_features, out_features=n_hidden, bias=False)
+        ]
+
+        for i in range(0, num_convolution_blocks - 1):
+            layers += [
+                nn.ReLU(inplace=True),
+                geom_nn.RGCNConv(in_channels=n_hidden, out_channels=n_hidden, num_relations=n_edge_features),
+                nn.ReLU(inplace=True),
+                geom_nn.MFConv(in_channels=n_hidden, out_channels=n_hidden)
+            ]
+        layers += [
+            geom_nn.GraphConv(in_channels=n_hidden, out_channels=n_hidden, aggr='mean'),
+            nn.Linear(in_features=n_hidden, out_features=n_hidden),
+            nn.ReLU(inplace=True),
+            nn.Linear(in_features=n_hidden, out_features=n_output),
+        ]
+        self.layers = nn.ModuleList(layers)
         #######################
         # END OF YOUR CODE    #
         #######################
@@ -138,7 +171,14 @@ class GNN(nn.Module):
         #######################
         # PUT YOUR CODE HERE  #
         #######################
-        
+        for l in self.layers:
+            if isinstance(l, geom_nn.RGCNConv):
+                x = l(x=x, edge_index=edge_index, edge_type=edge_attr.argmax(dim=1))
+            elif isinstance(l, geom_nn.MFConv) or isinstance(l, geom_nn.GraphConv):
+                x = l(x=x, edge_index=edge_index)
+            else:
+                x = l(x)
+        out = torch.zeros(batch_idx.max().item() + 1).index_add_(0, batch_idx, x.view(-1))
         #######################
         # END OF YOUR CODE    #
         #######################

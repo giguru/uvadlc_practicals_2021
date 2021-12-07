@@ -26,8 +26,11 @@ from torch_geometric.data.batch import Batch
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
+from assignment2.part3.data import FLAT_INPUT_DIM, Z_ONE_HOT_DIM, EDGE_ATTR_DIM, get_qm9
+from assignment2.part3.networks import MLP, GNN
 from data import *
 from networks import *
+import matplotlib.pyplot as plt
 
 
 def permute_indices(molecules: Batch) -> Batch:
@@ -83,7 +86,18 @@ def compute_loss(
     #######################
     # PUT YOUR CODE HERE  #
     #######################
-
+    labels = get_labels(molecules)
+    if isinstance(model, MLP):
+        output = model(x=get_mlp_features(molecules))
+        output = output.view(-1)
+        loss = criterion(output, labels)
+    elif isinstance(model, GNN):
+        output = model(x=get_node_features(molecules),
+                       edge_index=molecules.edge_index,
+                       edge_attr=molecules.edge_attr,
+                       batch_idx=molecules.batch)
+        output = output.view(-1)
+        loss = criterion(output, labels)
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -116,7 +130,19 @@ def evaluate_model(
     #######################
     # PUT YOUR CODE HERE  #
     #######################
+    losses = []
+    total_items = 0
+    model.eval()
+    with torch.no_grad():
+        for molecules in tqdm(data_loader, f"Evaluate with permute={permute}"):
+            loss = compute_loss(model=model,
+                                criterion=criterion,
+                                molecules=permute_indices(molecules) if permute else molecules)
+            n_items = len(molecules.y)
+            total_items += n_items
+            losses.append(loss.item() * n_items)
 
+    avg_loss = sum(losses) / total_items
     #######################
     # END OF YOUR CODE    #
     #######################
@@ -185,17 +211,41 @@ def train(
     #######################
 
     # TODO: Initialize loss module and optimizer
-    criterion = ...
-    optimizer = ...
-    # TODO: Training loop including validation, using evaluate_model
     # TODO: Do optimization, we used adam with amsgrad. (many should work)
-    val_losses = ...
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(params=model.parameters(), lr=lr, amsgrad=True)
+
+    logging_info = {
+        'loss_per_batch': [],
+    }
+    val_losses = []
+    best_model = None
+
+    # TODO: Training loop including validation, using evaluate_model
+    for epoch_number in range(0, epochs):
+        model.train()
+        logging_info['loss_per_batch'].append([])
+        for data_batch in tqdm(train_dataloader, desc=f"Epoch {epoch_number}"):
+            data_batch = data_batch.to(model.device)
+            loss = compute_loss(model=model, criterion=criterion, molecules=data_batch)
+            loss = loss.mean()
+            logging_info['loss_per_batch'][epoch_number].append(loss.item())
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+        # Do validation
+        val_loss = evaluate_model(model, valid_dataloader, criterion=criterion, permute=False)
+        if best_model is None or val_loss > np.max(val_losses):
+            # Store best model on CPU to save space on CUDA if CUDA is used
+            best_model = deepcopy(model).to('cpu')
+        val_losses.append(val_loss)
+
     # TODO: Test best model
-    test_loss = ...
+    test_loss = evaluate_model(best_model.to(model.device), test_dataloader, criterion=criterion, permute=False)
+
     # TODO: Test best model against permuted indices
-    permuted_test_loss = ...
-    # TODO: Add any information you might want to save for plotting
-    logging_info = ...
+    permuted_test_loss = evaluate_model(best_model.to(model.device), test_dataloader, criterion=criterion, permute=True)
 
     #######################
     # END OF YOUR CODE    #
@@ -230,8 +280,30 @@ def main(**kwargs):
     model, test_loss, permuted_test_loss, val_losses, logging_info = train(
         model, **kwargs
     )
+    print("Test loss", test_loss, "Permutated test loss", permuted_test_loss)
 
     # plot the loss curve, etc. below.
+    loss_per_batch = logging_info['loss_per_batch']
+
+    x_point = np.arange(1, len(loss_per_batch) + 1)
+    plt.xlabel("Epoch number")
+    plt.ylabel("Loss")
+
+    plt.plot(x_point, np.mean(loss_per_batch, axis=1))
+    plt.xticks(x_point)
+
+    plt.title(f"{which_model} training loss")
+    plt.show()
+
+    x_point = np.arange(1, len(val_losses) + 1)
+    plt.xlabel("Epoch number")
+    plt.ylabel("Loss")
+
+    plt.plot(x_point, val_losses)
+    plt.xticks(x_point)
+
+    plt.title(f"{which_model} validation loss")
+    plt.show()
 
 
 if __name__ == "__main__":
