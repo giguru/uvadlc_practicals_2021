@@ -292,8 +292,9 @@ def main(model_name, lr, batch_size, epochs, data_dir, seed):
         model = train_model(model, lr, batch_size, epochs, data_dir, checkpoint_name, device)
 
     test_results = test_model(model=model, batch_size=batch_size, data_dir=data_dir, device=device, seed=seed)
-    print(test_results)
 
+    with open(f"{checkpoint_name}-results.json", 'w') as f:
+        json.dump(test_results, f)
     #######################
     # END OF YOUR CODE    #
     #######################

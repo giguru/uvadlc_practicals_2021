@@ -151,11 +151,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Use GPU if available, else use CPU
-    # train(args)
+    train(args)
 
     # Generate
     args.vocabulary_size = 84
     model = TextGenerationModel(args)
     model.load_state_dict(torch.load('models/lstm-model-working', map_location=args.device))
 
+    print("0.0", model.sample(sample_length=100))
+    print("0.5", model.sample(temperature=0.5, sample_length=100))
+    print("1.0", model.sample(temperature=1.0, sample_length=100))
     print("2.0", model.sample(temperature=2.0, sample_length=100))
