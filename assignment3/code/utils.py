@@ -32,8 +32,8 @@ def sample_reparameterize(mean, std):
     """
     assert not (std < 0).any().item(), "The reparameterization trick got a negative std as input. " + \
                                        "Are you sure your input is std and not log_std?"
-    z = None
-    raise NotImplementedError
+    eps = torch.randn(*mean.shape)
+    z = mean + eps * std
     return z
 
 
@@ -49,8 +49,9 @@ def KLD(mean, log_std):
               The values represent the Kullback-Leibler divergence to unit Gaussians.
     """
 
-    KLD = None
-    raise NotImplementedError
+    last_dim = len(mean.shape)-1
+    KLD = ((log_std.exp() ** 2 + mean ** 2 - 1 - 2 * log_std) / 2).sum(axis=last_dim)
+
     return KLD
 
 
@@ -63,8 +64,8 @@ def elbo_to_bpd(elbo, img_shape):
     Outputs:
         bpd - The negative log likelihood in bits per dimension for the given image.
     """
-    bpd = None
-    raise NotImplementedError
+    bpd = elbo.sum() / np.log(2.) / np.prod(img_shape)
+
     return bpd
 
 
