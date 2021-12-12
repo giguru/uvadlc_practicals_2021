@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=gpu_shared_course
+#SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --job-name=TrainVAE
 #SBATCH --ntasks=1

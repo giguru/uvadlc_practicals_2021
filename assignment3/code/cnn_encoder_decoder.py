@@ -32,11 +32,27 @@ class CNNEncoder(nn.Module):
             z_dim - Dimensionality of latent representation z
         """
         super().__init__()
-
+        act_fn = nn.GELU
         # For an intial architecture, you can use the encoder of Tutorial 9.
         # Feel free to experiment with the architecture yourself, but the one specified here is
         # sufficient for the assignment.
-        raise NotImplementedError
+        c_hid = num_filters
+        ks = (3,3)
+        self.net = nn.Sequential(
+            nn.Conv2d(num_input_channels, c_hid, kernel_size=ks, padding=1, stride=2),  # 28x28 => 14x14
+            act_fn(),
+            nn.Conv2d(c_hid, c_hid, kernel_size=ks, padding=1),
+            act_fn(),
+            nn.Conv2d(c_hid, 2 * c_hid, kernel_size=ks, padding=1, stride=2),  # 14x14 => 7x7
+            act_fn(),
+            nn.Conv2d(2 * c_hid, 2 * c_hid, kernel_size=ks, padding=1),
+            act_fn(),
+            nn.Conv2d(2 * c_hid, 2 * c_hid, kernel_size=ks, padding=1, stride=2),  # 7x7 => 4x4
+            act_fn(),
+            nn.Flatten(),  # Image grid to single feature vector
+        )
+        self.mu_layer = nn.Linear(2 * 16 * c_hid, z_dim)
+        self.variance_layer = nn.Linear(2 * 16 * c_hid, z_dim)
 
     def forward(self, x):
         """
@@ -48,9 +64,9 @@ class CNNEncoder(nn.Module):
                       of the latent distributions.
         """
         x = x.float() / 15 * 2.0 - 1.0  # Move images between -1 and 1
-        mean = None
-        log_std = None
-        raise NotImplementedError
+        out = self.net(x)
+        mean = self.mu_layer(out)
+        log_std = self.variance_layer(out)
         return mean, log_std
 
 
@@ -71,7 +87,27 @@ class CNNDecoder(nn.Module):
         # For an intial architecture, you can use the decoder of Tutorial 9.
         # Feel free to experiment with the architecture yourself, but the one specified here is
         # sufficient for the assignment.
-        raise NotImplementedError
+        self.num_filters = num_filters
+        self.num_input_channels = num_input_channels
+        c_hid = num_filters
+        act_fn = nn.GELU
+        self.linear = nn.Sequential(
+            nn.Linear(z_dim, 2 * 16 * c_hid),
+            act_fn()
+        )
+        ks = (3)
+        self.net = nn.Sequential(
+            nn.ConvTranspose2d(2 * c_hid, 2 * c_hid, kernel_size=ks, output_padding=0, padding=1, stride=2), # 4x4 => 7x7
+            act_fn(),
+            nn.Conv2d(2 * c_hid, 2 * c_hid, kernel_size=ks, padding=1),
+            act_fn(),
+            nn.ConvTranspose2d(2 * c_hid, c_hid, kernel_size=ks, output_padding=1, padding=1, stride=2),  # 7x7 => 14x14
+            act_fn(),
+            nn.Conv2d(c_hid, c_hid, kernel_size=ks, padding=1),
+            act_fn(),
+            nn.ConvTranspose2d(c_hid, num_input_channels, kernel_size=ks, output_padding=1, padding=1, stride=2),  # 14x14 => 28x28
+            nn.Tanh()  # The input images is scaled between -1 and 1, hence the output has to be bounded as well
+        )
 
     def forward(self, z):
         """
@@ -79,12 +115,13 @@ class CNNDecoder(nn.Module):
             z - Latent vector of shape [B,z_dim]
         Outputs:
             x - Prediction of the reconstructed image based on z.
-                This should be a logit output *without* a sigmoid applied on it.
+                This should be a logit output *without* a sotfmax applied on it.
                 Shape: [B,num_input_channels,28,28]
         """
 
-        x = None
-        raise NotImplementedError
+        x = self.linear(z)
+        x = x.reshape(x.shape[0], -1, 4, 4)
+        x = self.net(x)
         return x
 
     @property

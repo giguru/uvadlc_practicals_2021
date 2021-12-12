@@ -49,8 +49,7 @@ def KLD(mean, log_std):
               The values represent the Kullback-Leibler divergence to unit Gaussians.
     """
 
-    last_dim = len(mean.shape)-1
-    KLD = ((log_std.exp() ** 2 + mean ** 2 - 1 - 2 * log_std) / 2).sum(axis=last_dim)
+    KLD = ((log_std.exp() ** 2 + mean ** 2 - 1 - 2 * log_std) / 2).sum(axis=-1)
 
     return KLD
 

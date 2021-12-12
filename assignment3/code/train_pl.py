@@ -44,6 +44,7 @@ class VAE(pl.LightningModule):
         self.save_hyperparameters()
 
         self.encoder = CNNEncoder(z_dim=z_dim, num_filters=num_filters)
+        self.lr = lr
         self.decoder = CNNDecoder(z_dim=z_dim, num_filters=num_filters)
 
     def forward(self, imgs):
@@ -66,10 +67,20 @@ class VAE(pl.LightningModule):
         # - You might find loss functions defined in torch.nn.functional 
         #   helpful for the reconstruction loss
 
-        L_rec = None
-        L_reg = None
-        bpd = None
-        raise NotImplementedError
+        mean, log_std = self.encoder(imgs)
+        z = sample_reparameterize(mean, log_std)
+        out = self.decoder(z)
+        B, C, H, W = imgs.shape
+        out = out.softmax(dim=1)
+
+        summed_nll_per_image = F.cross_entropy(out, imgs.reshape(B, H, W), reduction='none').sum(dim=(1,2))
+        L_reg = KLD(mean, log_std)
+        elbo = summed_nll_per_image + L_reg
+        bpd = elbo_to_bpd(elbo, imgs.shape)
+
+        L_rec = summed_nll_per_image.sum() / B
+        L_reg = L_reg.sum()
+
         return L_rec, L_reg, bpd
 
     @torch.no_grad()
@@ -82,6 +93,7 @@ class VAE(pl.LightningModule):
             x_samples - Sampled, 4-bit images. Shape: [B,C,H,W]
         """
         x_samples = None
+
         raise NotImplementedError
         return x_samples
 
