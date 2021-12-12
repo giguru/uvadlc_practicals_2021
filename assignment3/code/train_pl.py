@@ -71,7 +71,6 @@ class VAE(pl.LightningModule):
         z = sample_reparameterize(mean, log_std)
         out = self.decoder(z)
         B, C, H, W = imgs.shape
-        out = out.softmax(dim=1)
 
         summed_nll_per_image = F.cross_entropy(out, imgs.reshape(B, H, W), reduction='none').sum(dim=(1,2))
         L_reg = KLD(mean, log_std)
