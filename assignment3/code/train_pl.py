@@ -42,7 +42,7 @@ class VAE(pl.LightningModule):
         """
         super().__init__()
         self.save_hyperparameters()
-
+        self.z_dim = z_dim
         self.encoder = CNNEncoder(z_dim=z_dim, num_filters=num_filters)
         self.lr = lr
         self.decoder = CNNDecoder(z_dim=z_dim, num_filters=num_filters)
@@ -68,7 +68,7 @@ class VAE(pl.LightningModule):
         #   helpful for the reconstruction loss
 
         mean, log_std = self.encoder(imgs)
-        z = sample_reparameterize(mean, log_std)
+        z = sample_reparameterize(mean, log_std.exp())
         out = self.decoder(z)
         B, C, H, W = imgs.shape
 
@@ -91,9 +91,8 @@ class VAE(pl.LightningModule):
         Outputs:
             x_samples - Sampled, 4-bit images. Shape: [B,C,H,W]
         """
-        x_samples = None
-
-        raise NotImplementedError
+        z = torch.randn(batch_size, self.z_dim, device=self.device)
+        x_samples = self.decoder(z)
         return x_samples
 
     def configure_optimizers(self):
@@ -163,8 +162,26 @@ class GenerateCallback(pl.Callback):
         # - Remember converting the 4-bit images to a common image format, e.g. float values between 0 and 1.
         # - Use the torchvision function "make_grid" to create a grid of multiple images
         # - Use the torchvision function "save_image" to save an image grid to disk
+        multichannel_samples = pl_module.sample(4)
+        B, C, H, W = multichannel_samples.shape
+        samples = torch.zeros((B, 1, H, W))
 
-        raise NotImplementedError
+        for h in range(H):
+            for w in range(W):
+                samples[:, 0, h, w] = (torch.multinomial(multichannel_samples[:, :, h, w].softmax(dim=1), 1)).view(-1)
+
+        samples = samples / 15
+
+        if self.save_to_disk:
+            try:
+                save_image(samples, fp=f'{trainer.logger.log_dir}/samples-epoch-{epoch}.png')
+            except FileNotFoundError:
+                pass
+        else:
+            grid_of_images = make_grid(samples)
+            tb = trainer.logger.experiment  # type: tensorboard
+            tb.add_image(grid_of_images)
+
 
 
 def train_vae(args):

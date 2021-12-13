@@ -15,7 +15,7 @@
 ################################################################################
 
 import torch
-from torchvision.utils import make_grid
+from torchvision.utils import make_grid, save_image
 import numpy as np
 
 
@@ -88,9 +88,13 @@ def visualize_manifold(decoder, grid_size=20):
     # - torch.meshgrid might be helpful for creating the grid of values
     # - You can use torchvision's function "make_grid" to combine the grid_size**2 images into a grid
     # - Remember to apply a sigmoid after the decoder
-
-    img_grid = None
-    raise NotImplementedError
-
+    latent_dim = 2
+    percentiles = torch.tensor(np.linspace(0.5, grid_size-0.5, grid_size) / grid_size)
+    x_values, y_values = torch.meshgrid(percentiles, percentiles)
+    grid_values = torch.dstack((x_values, y_values)).reshape(-1, latent_dim)
+    icdf = torch.distributions.Normal(0, 1).icdf
+    grid_values = icdf(grid_values)
+    imgs = decoder(grid_values.float()).sigmoid()
+    imgs = imgs.mean(dim=1, keepdim=True)
+    img_grid = make_grid(imgs, nrow=grid_size)
     return img_grid
-
