@@ -87,7 +87,7 @@ def visualize_manifold(decoder, grid_size=20):
     # - Use the range [0.5/grid_size, 1.5/grid_size, ..., (grid_size-0.5)/grid_size] for the percentiles.
     # - torch.meshgrid might be helpful for creating the grid of values
     # - You can use torchvision's function "make_grid" to combine the grid_size**2 images into a grid
-    # - Remember to apply a sigmoid after the decoder
+    # - Remember to apply a softmax after the decoder
     latent_dim = 2
     device = decoder.device
     percentiles = torch.tensor(np.linspace(0.5, grid_size-0.5, grid_size) / grid_size).to(device)
@@ -95,7 +95,7 @@ def visualize_manifold(decoder, grid_size=20):
     grid_values = torch.dstack((x_values, y_values)).reshape(-1, latent_dim)
     icdf = torch.distributions.Normal(0, 1).icdf
     grid_values = icdf(grid_values)
-    imgs = decoder(grid_values.float()).sigmoid()
+    imgs = decoder(grid_values.float()).softmax(dim=1)
     imgs = imgs.mean(dim=1, keepdim=True)
     img_grid = make_grid(imgs, nrow=grid_size)
     return img_grid
