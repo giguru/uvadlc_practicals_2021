@@ -120,7 +120,7 @@ class CNNDecoder(nn.Module):
         """
 
         x = self.linear(z)
-        x = x.reshape(x.shape[0], -1, 4, 4)
+        x = x.view(x.shape[0], -1, 4, 4)
         x = self.net(x)
         return x
 
