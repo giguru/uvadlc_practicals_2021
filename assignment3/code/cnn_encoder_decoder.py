@@ -105,8 +105,7 @@ class CNNDecoder(nn.Module):
             act_fn(),
             nn.Conv2d(c_hid, c_hid, kernel_size=ks, padding=1),
             act_fn(),
-            nn.ConvTranspose2d(c_hid, num_input_channels, kernel_size=ks, output_padding=1, padding=1, stride=2),  # 14x14 => 28x28
-            nn.Tanh()  # The input images is scaled between -1 and 1, hence the output has to be bounded as well
+            nn.ConvTranspose2d(c_hid, num_input_channels, kernel_size=ks, output_padding=1, padding=1, stride=2)  # 14x14 => 28x28
         )
 
     def forward(self, z):
