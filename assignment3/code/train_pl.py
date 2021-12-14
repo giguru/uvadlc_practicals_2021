@@ -164,7 +164,7 @@ class GenerateCallback(pl.Callback):
         # - Use the torchvision function "save_image" to save an image grid to disk
         multichannel_samples = pl_module.sample(4)
         B, C, H, W = multichannel_samples.shape
-        samples = torch.zeros((B, 1, H, W))
+        samples = torch.zeros((B, 1, H, W)).to(pl_module.device)
 
         for h in range(H):
             for w in range(W):
@@ -173,10 +173,10 @@ class GenerateCallback(pl.Callback):
         samples = samples / 15
 
         if self.save_to_disk:
-            try:
-                save_image(samples, fp=f'{trainer.logger.log_dir}/samples-epoch-{epoch}.png')
-            except FileNotFoundError:
-                pass
+            if not os.path.exists(trainer.logger.log_dir):
+                os.makedirs(trainer.logger.log_dir)
+            filepath = trainer.logger.log_dir+"/samples-epoch-"+str(epoch)+".png"
+            save_image(samples, fp=filepath)
         else:
             grid_of_images = make_grid(samples)
             tb = trainer.logger.experiment  # type: tensorboard

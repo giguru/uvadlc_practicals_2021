@@ -32,7 +32,7 @@ def sample_reparameterize(mean, std):
     """
     assert not (std < 0).any().item(), "The reparameterization trick got a negative std as input. " + \
                                        "Are you sure your input is std and not log_std?"
-    eps = torch.randn(*mean.shape)
+    eps = torch.randn(*mean.shape).to(mean.device)
     z = mean + eps * std
     return z
 
@@ -89,7 +89,8 @@ def visualize_manifold(decoder, grid_size=20):
     # - You can use torchvision's function "make_grid" to combine the grid_size**2 images into a grid
     # - Remember to apply a sigmoid after the decoder
     latent_dim = 2
-    percentiles = torch.tensor(np.linspace(0.5, grid_size-0.5, grid_size) / grid_size)
+    device = decoder.device
+    percentiles = torch.tensor(np.linspace(0.5, grid_size-0.5, grid_size) / grid_size).to(device)
     x_values, y_values = torch.meshgrid(percentiles, percentiles)
     grid_values = torch.dstack((x_values, y_values)).reshape(-1, latent_dim)
     icdf = torch.distributions.Normal(0, 1).icdf
