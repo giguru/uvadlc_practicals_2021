@@ -170,7 +170,7 @@ class GenerateCallback(pl.Callback):
             for w in range(W):
                 samples[:, 0, h, w] = (torch.multinomial(multichannel_samples[:, :, h, w].softmax(dim=1), 1)).view(-1)
 
-        samples = samples / 15
+        samples = samples / 15  # Convert into float values between 0 and 1.
 
         if self.save_to_disk:
             if not os.path.exists(trainer.logger.log_dir):

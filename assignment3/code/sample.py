@@ -1,15 +1,10 @@
-from pytorch_lightning.trainer import trainer
-import torch
+import torch, os
+from torchvision.utils import save_image
+
 from train_pl import VAE, GenerateCallback
+from utils import visualize_manifold
 
-pl_module = VAE.load_from_checkpoint("VAE_logs/lightning_logs/version_8519982/checkpoints/epoch=6-step=2953.ckpt")
+pl_module = VAE.load_from_checkpoint("VAE_logs/lightning_logs/version_8520535/checkpoints/epoch=79-step=33759.ckpt")
 
-multichannel_samples = pl_module.sample(4)
-B, C, H, W = multichannel_samples.shape
-samples = torch.zeros((B, 1, H, W)).to(pl_module.device)
-
-for h in range(H):
-    for w in range(W):
-        samples[:, 0, h, w] = (torch.multinomial(multichannel_samples[:, :, h, w].softmax(dim=1), 1)).view(-1)
-
-samples = samples / 15
+img_grid = visualize_manifold(pl_module.decoder)
+save_image(img_grid, 'vae_manifold.png', normalize=False)
