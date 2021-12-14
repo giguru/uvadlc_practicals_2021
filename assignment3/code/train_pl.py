@@ -77,8 +77,8 @@ class VAE(pl.LightningModule):
         elbo = summed_nll_per_image + L_reg
         bpd = elbo_to_bpd(elbo, imgs.shape)
 
-        L_rec = summed_nll_per_image.sum() / B
-        L_reg = L_reg.sum()
+        L_rec = summed_nll_per_image.mean()
+        L_reg = L_reg.mean()
 
         return L_rec, L_reg, bpd
 

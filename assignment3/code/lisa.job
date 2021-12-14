@@ -14,4 +14,4 @@ pip3 install --user torch torchvision pytorch-lightning==1.5.5
 python3 --version
 
 # Run your code
-srun python3 -u train_pl.py --data_dir=$TMPDIR/
+srun python3 -u train_pl.py --data_dir=$TMPDIR/ --progress_bar
