@@ -179,8 +179,8 @@ class GenerateCallback(pl.Callback):
             save_image(samples, fp=filepath)
         else:
             grid_of_images = make_grid(samples)
-            tb = trainer.logger.experiment  # type: tensorboard
-            tb.add_image(grid_of_images)
+            writer = trainer.logger.experiment
+            writer.add_image(f"Samples epoch={epoch}", grid_of_images)
 
 
 
