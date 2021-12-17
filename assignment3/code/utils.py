@@ -97,13 +97,13 @@ def visualize_manifold(decoder, grid_size=20):
     grid_values = icdf(grid_values)
 
     imgs = decoder(grid_values.float())
-    samples = torch.zeros((400, 1, 28, 28))
 
-    for h in range(28):
-        for w in range(28):
-            samples[:, 0, h, w] = (torch.multinomial(imgs[:, :, h, w].softmax(dim=1), 1)).view(-1)
-    img_grid = make_grid(samples / 15, nrow=grid_size)
-    # imgs = imgs.softmax(dim=1)
-    # imgs = imgs.mean(dim=1, keepdim=True)
-    # img_grid = make_grid(imgs, nrow=grid_size)
+    B, _, H, W = imgs.shape
+
+    # convert into two dimensional tensor
+    imgs = torch.permute(imgs, (0, 2, 3, 1)).flatten(end_dim=2)
+
+    imgs = torch.multinomial(imgs.softmax(dim=1), 1).view(B, 1, H, W)
+    img_grid = make_grid(imgs / 15, nrow=grid_size)
+
     return img_grid
