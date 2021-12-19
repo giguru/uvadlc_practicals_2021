@@ -162,14 +162,10 @@ class GenerateCallback(pl.Callback):
         # - Remember converting the 4-bit images to a common image format, e.g. float values between 0 and 1.
         # - Use the torchvision function "make_grid" to create a grid of multiple images
         # - Use the torchvision function "save_image" to save an image grid to disk
-        multichannel_samples = pl_module.sample(self.batch_size)
-        B, C, H, W = multichannel_samples.shape
-        samples = torch.zeros((B, 1, H, W)).to(pl_module.device)
-
-        for h in range(H):
-            for w in range(W):
-                samples[:, 0, h, w] = (torch.multinomial(multichannel_samples[:, :, h, w].softmax(dim=1), 1)).view(-1)
-
+        samples = pl_module.sample(self.batch_size)
+        B, C, H, W = samples.shape
+        samples = torch.permute(samples, (0, 2, 3, 1)).flatten(end_dim=2)
+        samples = torch.multinomial(samples.softmax(dim=1), 1).view(B, 1, H, W)
         samples = samples / 15  # Convert into float values between 0 and 1.
 
         if self.save_to_disk:
